@@ -51,6 +51,7 @@ struct config {
 	bool exp_distribution;
 	bool allow_late_tx;
 	double multiplier;
+	bool additive;
 	double sampling_interval;
 	double offset_correction;
 	bool offset_middle;
@@ -572,7 +573,7 @@ static bool run_perf(struct config *config) {
 
 	print_header(config);
 
-	for (rate = config->min_rate; rate <= config->max_rate; rate *= config->multiplier) {
+	for (rate = config->min_rate; rate <= config->max_rate; ) {
 		ret = measure_perf(config, pcap, senders, rate, &stats);
 		if (!ret)
 			break;
@@ -582,6 +583,11 @@ static bool run_perf(struct config *config) {
 		if (get_lost_packets(&stats, config) + stats.invalid_responses >
 		    stats.requests / 2)
 			break;
+
+		if (config->additive)
+			rate += config->multiplier;
+		else
+			rate *= config->multiplier;
 	}
 
 	for (i = 0; i < config->senders; i++)
@@ -611,9 +617,10 @@ int main(int argc, char **argv) {
 	config.max_rate = 1000000;
 	config.senders = 1;
 	config.multiplier = 1.5;
+	config.additive= false;
 	config.sampling_interval = 2.0;
 
-	while ((opt = getopt(argc, argv, "BID:N:i:s:d:m:Mr:p:elt:x:o:OHS:h")) != -1) {
+	while ((opt = getopt(argc, argv, "BID:N:i:s:d:m:Mr:p:elt:x:ao:OHS:h")) != -1) {
 		switch (opt) {
 			case 'B':
 				config.mode = NTP_BASIC;
@@ -678,6 +685,9 @@ int main(int argc, char **argv) {
 			case 'x':
 				config.multiplier = atof(optarg);
 				break;
+			case 'a':
+				config.additive = true;
+				break;
 			case 't':
 				config.sampling_interval = atof(optarg);
 				break;
@@ -737,6 +747,7 @@ err:
 	fprintf(stderr, "\t-e              make transmit interval exponentially distributed\n");
 	fprintf(stderr, "\t-l              allow late transmissions\n");
 	fprintf(stderr, "\t-x MULT         specify rate multiplier (1.5)\n");
+	fprintf(stderr, "\t-a              use multiplier as additive\n");
 	fprintf(stderr, "\t-t INTERVAL     specify sampling interval (2.0 seconds)\n");
 	fprintf(stderr, "\t-o CORRECTION   print offset between remote TX and local RX timestamp\n");
 	fprintf(stderr, "\t                with specified correction (e.g. network and RX delay)\n");

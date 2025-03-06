@@ -42,6 +42,7 @@ Other options:
         -e              make transmit interval exponentially distributed
         -l              allow late transmissions
         -x MULT         specify rate multiplier (1.5)
+        -a              use multiplier as additive (false)
         -t INTERVAL     specify sampling interval (2.0 seconds)
         -o CORRECTION   print offset between remote TX and local RX timestamp
                         with specified correction (e.g. network and RX delay)
